@@ -1,0 +1,19 @@
+# OS generated files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
+
+# Environment variables
+.env
