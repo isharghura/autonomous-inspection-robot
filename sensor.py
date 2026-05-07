@@ -28,4 +28,5 @@ def get_distance_cm():
         stop = time.time()
 
     elapsed = stop - start
-    return (elapsed * 34300) / 2  # Speed of sound
+    # at speed of sound!
+    return (elapsed * 34300) / 2 
