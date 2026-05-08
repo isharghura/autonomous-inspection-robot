@@ -33,6 +33,28 @@ def background_scanner():
 scanner_thread = threading.Thread(target=background_scanner, daemon=True)
 scanner_thread.start()
 
+# shared state
+latest_observation = "Waiting for first scan..."
+scan_lock = threading.Lock()
+scanning = False
+
+
+def background_scanner():
+    """Runs in a background thread — scans every 5 seconds."""
+    global latest_observation, scanning
+    while True:
+        time.sleep(5)
+        scanning = True
+        result = vision.analyze_frame(camera)
+        with scan_lock:
+            latest_observation = result
+        vision.log_observation(result)
+        scanning = False
+
+
+scanner_thread = threading.Thread(target=background_scanner, daemon=True)
+scanner_thread.start()
+
 DASHBOARD = """
 <!DOCTYPE html>
 <html>
