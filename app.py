@@ -9,8 +9,29 @@ import vision
 app = Flask(__name__)
 
 camera = cv2.VideoCapture(0)
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+
+# shared state
+latest_observation = "Waiting for first scan..."
+scan_lock = threading.Lock()
+scanning = False
+
+# runs in background thread to update VLM observation every 5 seconds
+def background_scanner():
+    global latest_observation, scanning
+    while True:
+        time.sleep(20)
+        scanning = True
+        result = vision.analyze_frame(camera)
+        with scan_lock:
+            latest_observation = result
+        vision.log_observation(result)
+        scanning = False
+
+
+scanner_thread = threading.Thread(target=background_scanner, daemon=True)
+scanner_thread.start()
 
 # shared state
 latest_observation = "Waiting for first scan..."

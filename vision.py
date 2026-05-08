@@ -5,7 +5,7 @@ import json
 import time
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL      = "llava:7b"
+MODEL      = "moondream:latest"
 
 PROMPT = (
     "You are an inspection robot scanning an indoor room or hallway. "
@@ -19,7 +19,7 @@ def capture_frame(camera: cv2.VideoCapture) -> bytes | None:
     success, frame = camera.read()
     if not success:
         return None
-    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
     return buffer.tobytes()
 
 # capture frame, send to LLaVA via Ollama, return its description
@@ -44,7 +44,7 @@ def analyze_frame(camera: cv2.VideoCapture) -> str:
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             result = json.loads(resp.read().decode('utf-8'))
             return result.get("response", "No response from model.").strip()
     except Exception as e:
