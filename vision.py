@@ -23,13 +23,12 @@ def capture_frame(camera: cv2.VideoCapture) -> bytes | None:
     return buffer.tobytes()
 
 # capture frame, send to LLaVA via Ollama, return its description
-def analyze_frame(camera: cv2.VideoCapture) -> str:
+def analyze_frame(camera: cv2.VideoCapture) -> tuple[str, float]:
     frame_bytes = capture_frame(camera)
     if frame_bytes is None:
-        return "error: could not capture frame from camera"
+        return "error: could not capture frame from camera", 0.0
 
     image_b64 = base64.b64encode(frame_bytes).decode('utf-8')
-
     payload = json.dumps({
         "model": MODEL,
         "prompt": PROMPT,
@@ -39,16 +38,19 @@ def analyze_frame(camera: cv2.VideoCapture) -> str:
 
     try:
         req = urllib.request.Request(
-            OLLAMA_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            OLLAMA_URL, data=payload,
+            headers={"Content-Type": "application/json"}, method="POST"
         )
+        t0 = time.time()
         with urllib.request.urlopen(req, timeout=120) as resp:
             result = json.loads(resp.read().decode('utf-8'))
-            return result.get("response", "No response from model.").strip()
+        elapsed = time.time() - t0
+
+        description = result.get("response", "No response from model.").strip()
+        return description, elapsed
+
     except Exception as e:
-        return f"Vision error: {e}"
+        return f"Vision error: {e}", 0.0
 
 # add timestamped observation to the log file
 def log_observation(description: str, log_path: str = "inspection_log.txt"):
