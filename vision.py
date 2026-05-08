@@ -57,3 +57,20 @@ def log_observation(description: str, log_path: str = "inspection_log.txt"):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     with open(log_path, "a") as f:
         f.write(f"[{timestamp}] {description}\n")
+
+# send a dummy request so the model is loaded before the first real scan
+def warmup():
+    payload = json.dumps({
+        "model": MODEL,
+        "prompt": "say ok",
+        "stream": False
+    }).encode('utf-8')
+    try:
+        req = urllib.request.Request(
+            OLLAMA_URL, data=payload,
+            headers={"Content-Type": "application/json"}, method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            resp.read()
+    except Exception:
+        pass
