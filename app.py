@@ -34,7 +34,8 @@ def background_scanner():
         vision.log_observation(result)
         scanning = False
 
-vision.warmup()
+warmup_thread = threading.Thread(target=vision.warmup, daemon=True)
+warmup_thread.start()
 scanner_thread = threading.Thread(target=background_scanner, daemon=True)
 scanner_thread.start()
 
