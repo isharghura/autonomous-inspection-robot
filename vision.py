@@ -1,3 +1,4 @@
+from random import randint, random
 import cv2
 import base64
 import urllib.request
@@ -5,13 +6,17 @@ import json
 import time
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL      = "moondream:latest"
+MODEL      = "moondream:1.8b"
+
+# PROMPT = (
+#     "You are an inspection robot scanning an indoor room or hallway. "
+#     "Describe what you see concisely in 1-2 sentences. "
+#     "Note anything unusual, obstructed, damaged, or out of place. "
+#     "If the scene looks normal, just say so briefly."
+# )
 
 PROMPT = (
-    "You are an inspection robot scanning an indoor room or hallway. "
     "Describe what you see concisely in 1-2 sentences. "
-    "Note anything unusual, obstructed, damaged, or out of place. "
-    "If the scene looks normal, just say so briefly."
 )
 
 # capture a JPEG frame from the camera and return as bytes
@@ -22,7 +27,7 @@ def capture_frame(camera: cv2.VideoCapture) -> bytes | None:
     _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
     return buffer.tobytes()
 
-# capture frame, send to LLaVA via Ollama, return its description
+# capture frame, send to the model via Ollama, return its description
 def analyze_frame(camera: cv2.VideoCapture) -> tuple[str, float]:
     frame_bytes = capture_frame(camera)
     if frame_bytes is None:
@@ -33,7 +38,11 @@ def analyze_frame(camera: cv2.VideoCapture) -> tuple[str, float]:
         "model": MODEL,
         "prompt": PROMPT,
         "images": [image_b64],
-        "stream": False
+        "stream": False,
+        "options": {
+            "seed": randint(0, 999999),
+            "temperature": 0.7
+        }
     }).encode('utf-8')
 
     try:
@@ -42,7 +51,7 @@ def analyze_frame(camera: cv2.VideoCapture) -> tuple[str, float]:
             headers={"Content-Type": "application/json"}, method="POST"
         )
         t0 = time.time()
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=300) as resp:
             result = json.loads(resp.read().decode('utf-8'))
         elapsed = time.time() - t0
 
@@ -50,7 +59,7 @@ def analyze_frame(camera: cv2.VideoCapture) -> tuple[str, float]:
         return description, elapsed
 
     except Exception as e:
-        return f"Vision error: {e}", 0.0
+        return f"vision error: {e}", 0.0
 
 # add timestamped observation to the log file
 def log_observation(description: str, log_path: str = "inspection_log.txt"):
